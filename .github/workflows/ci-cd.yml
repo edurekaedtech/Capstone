@@ -32,6 +32,27 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Create .env for testing
+        run: |
+          echo "OPENAI_API_KEY=test_key_for_ci" > .env
+          echo "SECRET_KEY=test_secret_key_for_ci" >> .env
+          echo "ALGORITHM=HS256" >> .env
+          echo "ACCESS_TOKEN_EXPIRE_MINUTES=30" >> .env
+
+      - name: Verify required files
+        run: |
+          echo "Checking required files for deployment..."
+          files=("main.py" "auth.py" "data.py" "retrieval.py" "models.py" "analytics.py" "requirements.txt" "Dockerfile" "static/index.html")
+          for file in "${files[@]}"; do
+            if [ -f "$file" ]; then
+              echo "✓ $file found"
+            else
+              echo "✗ $file missing"
+              exit 1
+            fi
+          done
+          echo "All required files present!"
+
       - name: Lint code with Flake8
         run: |
           pip install flake8

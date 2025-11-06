@@ -2,17 +2,20 @@
 
 import logging
 import os
+import time
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
-from datetime import datetime
-import time
 
 # Import modules
-from auth import get_current_user, require_admin, create_access_token, users_db
+from auth import (get_current_user, require_admin, create_access_token,
+                  users_db)
 from retrieval import initialize_retrieval, execute_query
-from models import LoginRequest, QueryRequest, QueryResponse, HealthResponse, DashboardResponse, TokenResponse, HistoryResponse
-from analytics import track_request, cache_query, get_cached_query, get_user_history, get_analytics_summary
+from models import (LoginRequest, QueryRequest, QueryResponse,
+                    HealthResponse, DashboardResponse, TokenResponse,
+                    HistoryResponse)
+from analytics import (track_request, cache_query, get_cached_query,
+                       get_user_history, get_analytics_summary)
 
 # --- Setup Logging ---
 logging.basicConfig(
@@ -20,6 +23,7 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger("capstone_main")
+
 
 # --- Initialize FastAPI ---
 app = FastAPI(
@@ -35,6 +39,7 @@ if os.path.exists(static_dir):
 else:
     logger.warning(f"Static directory not found: {static_dir}")
 
+
 # --- Initialize retrieval system on startup ---
 @app.on_event("startup")
 async def startup_event():
@@ -42,10 +47,12 @@ async def startup_event():
     initialize_retrieval()
     logger.info("Application started successfully")
 
+
 @app.on_event("shutdown")
 async def shutdown_event():
     """Cleanup on app shutdown"""
     logger.info("Application shutting down")
+
 
 # --- Authentication Endpoints ---
 @app.post("/token", response_model=TokenResponse)
@@ -53,20 +60,34 @@ async def login(credentials: LoginRequest):
     """Login endpoint to obtain JWT token (accepts JSON)"""
     user = users_db.get(credentials.username)
     if not user or user["password"] != credentials.password:
-        logger.warning(f"Failed login attempt for user: {credentials.username}")
-        raise HTTPException(status_code=400, detail="Incorrect username or password")
-    
-    access_token = create_access_token({"sub": credentials.username, "role": user["role"]})
+        logger.warning(
+            f"Failed login attempt for user: {credentials.username}"
+        )
+        raise HTTPException(
+            status_code=400,
+            detail="Incorrect username or password"
+        )
+
+    access_token = create_access_token({
+        "sub": credentials.username,
+        "role": user["role"]
+    })
     logger.info(f"User {credentials.username} logged in successfully")
-    return {"access_token": access_token, "token_type": "bearer", "role": user["role"]}
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "role": user["role"]
+    }
+
 
 # --- Query Endpoints ---
 @app.post("/ask", response_model=QueryResponse)
-async def ask_question(request: QueryRequest, user: dict = Depends(get_current_user)):
+async def ask_question(request: QueryRequest,
+                       user: dict = Depends(get_current_user)):
     """Query endpoint with caching and performance tracking"""
     start_time = time.time()
     cache_key = f"{request.question}:{user['username']}"
-    
+
     # Check cache first
     cached_result = get_cached_query(cache_key)
     if cached_result:
@@ -78,19 +99,19 @@ async def ask_question(request: QueryRequest, user: dict = Depends(get_current_u
             "response_time": 0.001,
             "user": user['username']
         }
-    
+
     try:
         logger.info(f"User {user['username']} asked: {request.question}")
         answer = execute_query(request.question)
-        
+
         # Cache the result
         cache_query(cache_key, answer, user['username'])
-        
+
         elapsed_time = time.time() - start_time
-        
+
         # Track request history
         track_request(user['username'], request.question, elapsed_time)
-        
+
         return {
             "question": request.question,
             "answer": answer,
@@ -100,7 +121,11 @@ async def ask_question(request: QueryRequest, user: dict = Depends(get_current_u
         }
     except Exception as e:
         logger.error(f"Error processing query: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Error processing query: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error processing query: {str(e)}"
+        )
+
 
 @app.get("/history", response_model=HistoryResponse)
 async def get_history(user: dict = Depends(get_current_user)):
@@ -112,6 +137,7 @@ async def get_history(user: dict = Depends(get_current_user)):
         "history": history[-10:]
     }
 
+
 # --- Health & Monitoring Endpoints ---
 @app.get("/health", response_model=HealthResponse)
 async def health_check():
@@ -122,6 +148,7 @@ async def health_check():
         "query_engine_initialized": True,
         "cached_queries": analytics["cached_queries"]
     }
+
 
 @app.get("/dashboard", response_model=DashboardResponse)
 async def dashboard(user: dict = Depends(get_current_user)):
@@ -137,6 +164,7 @@ async def dashboard(user: dict = Depends(get_current_user)):
         "avg_response_time": analytics["avg_response_time"]
     }
 
+
 @app.get("/admin/stats")
 async def admin_stats(user: dict = Depends(require_admin)):
     """Admin-only endpoint for comprehensive statistics"""
@@ -149,18 +177,20 @@ async def admin_stats(user: dict = Depends(require_admin)):
         "avg_response_time": analytics["avg_response_time"]
     }
 
+
 # --- Landing Page ---
 @app.get("/", response_class=FileResponse)
 async def landing_page():
     """Serve the landing page HTML"""
     current_dir = os.path.dirname(os.path.abspath(__file__))
     html_file = os.path.join(current_dir, "static", "index.html")
-    
+
     logger.info(f"Attempting to serve: {html_file}")
     logger.info(f"File exists: {os.path.exists(html_file)}")
-    
+
     if os.path.exists(html_file):
         return html_file
     else:
         logger.error(f"Landing page not found at {html_file}")
-        raise HTTPException(status_code=404, detail="Landing page not found")
+        raise HTTPException(status_code=404,
+                            detail="Landing page not found")

@@ -109,7 +109,7 @@ async def ask_question(request: QueryRequest,
 
         elapsed_time = time.time() - start_time
 
-        # Track request history
+        # Track request history -> Sued for tracking the request
         track_request(user['username'], request.question, elapsed_time)
 
         return {

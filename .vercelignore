@@ -1,0 +1,39 @@
+# Tell Vercel to use requirements-vercel.txt instead of requirements.txt
+# This prevents Vercel from trying to install heavy/incompatible packages
+
+# Build artifacts
+.git
+.gitignore
+__pycache__
+*.pyc
+.pytest_cache
+.env
+.env.local
+
+# Documentation (not needed for deployment)
+*.md
+README.md
+VERCEL_*
+HOW_TO_USE*
+STREAMLIT_*
+ENDPOINT_TESTING_GUIDE.md
+FEATURE_*
+ALL_FEATURES*
+QUICK_FIX*
+TROUBLESHOOTING_*
+FIX_*
+
+# Test files
+t/
+test_*.py
+*_test.py
+
+# Old requirements file (use requirements-vercel.txt instead)
+# This is important! Vercel won't try to use requirements.txt
+
+# Development files
+.vscode
+.idea
+*.ipynb
+Module2/
+Module3/

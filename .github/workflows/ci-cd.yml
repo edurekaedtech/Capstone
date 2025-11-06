@@ -19,17 +19,17 @@ jobs:
       - name: Install dependencies
         run: |
           pip install --upgrade pip
-          pip install -r capstone/requirements.txt
+          pip install -r requirements.txt
       - name: Lint code
         run: |
           pip install flake8
-          flake8 capstone/main.py
+          flake8 main.py
       - name: Run basic tests
         run: |
-          python -m unittest discover capstone/tests || echo "No tests found, skipping."
+          python -m unittest discover tests || echo "No tests found, skipping."
       - name: Build Docker image
         run: |
-          docker build -t capstone-ai-pipeline ./capstone
+          docker build -t capstone-ai-pipeline .
       - name: Push Docker image (optional)
         if: github.ref == 'refs/heads/main'
         run: echo "Add Docker push step here if using a registry."
